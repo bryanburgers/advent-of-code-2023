@@ -3,7 +3,6 @@
     (export "memory" (memory $memory))
     (import "aoc" "input_len" (func $aoc.input_len (result i32)))
     (import "aoc" "input" (func $aoc.input (param i32) (result i32)))
-    (import "dbg" "i32" (func $dbg.i32 (param i32)))
 
     (memory $memory 1)
 
@@ -194,8 +193,6 @@
                 local.get $parse_line_r1
                 i32.add
                 local.set $sum
-
-                (; call $dbg.i32 (local.get $parse_line_r1) ;)
 
                 ;; have we parsed to the end of the input
                 local.get $parsed

@@ -52,8 +52,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     linker.func_wrap("dbg", "panic", |val: i32| -> anyhow::Result<()> {
         anyhow::bail!("panic with code {val:08x}");
     })?;
-    linker.func_wrap("dbg", "i32", |val: i32| {
+    linker.func_wrap("dbg", "i32", |val: i32| -> i32 {
         println!("{val} ({val:08x})");
+        val
     })?;
     linker.func_wrap(
         "dbg",
