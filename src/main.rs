@@ -25,6 +25,60 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let module = Module::new(&engine, code)?;
     let mut linker = Linker::new(&engine);
 
+    for import in module.imports() {
+        if import.module() != "dbg" {
+            continue;
+        }
+        // Auto-generate debugging functions based on what the module asks for.
+        if let Some(name) = import.name().strip_prefix("inspect:") {
+            match import.ty() {
+                wasmtime::ExternType::Func(func_type) => {
+                    if func_type.params().len() != func_type.results().len() {
+                        println!(
+                            "importing 'inspect' function but params did not equal results. Skipping."
+                        );
+                    }
+                    if func_type
+                        .params()
+                        .zip(func_type.results())
+                        .any(|(p, r)| p != r)
+                    {
+                        println!(
+                            "importing 'inspect' function but params did not equal results. Skipping."
+                        );
+                    }
+                    let name = name.to_string();
+                    linker.func_new(
+                        import.module(),
+                        import.name(),
+                        func_type,
+                        move |_caller, args, results| {
+                            print!("{}", name);
+                            for (arg, result) in args.iter().zip(results.iter_mut()) {
+                                *result = arg.clone();
+
+                                match arg {
+                                    Val::I32(v) => print!(" {v}"),
+                                    Val::I64(v) => print!(" {v}"),
+                                    Val::F32(v) => print!(" {v}"),
+                                    Val::F64(v) => print!(" {v}"),
+                                    Val::V128(v) => print!(" {v:?}"),
+                                    Val::FuncRef(_) => print!(" <funcref>"),
+                                    Val::ExternRef(_) => print!(" <externref>"),
+                                }
+                            }
+                            println!();
+                            Ok(())
+                        },
+                    )?;
+                }
+                wasmtime::ExternType::Global(_) => continue,
+                wasmtime::ExternType::Table(_) => continue,
+                wasmtime::ExternType::Memory(_) => continue,
+            }
+        }
+    }
+
     linker.func_wrap("aoc", "input_len", |caller: Caller<'_, Vec<u8>>| -> i32 {
         caller.data().len() as i32
     })?;
@@ -51,10 +105,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     linker.func_wrap("dbg", "panic", |val: i32| -> anyhow::Result<()> {
         anyhow::bail!("panic with code {val:08x}");
-    })?;
-    linker.func_wrap("dbg", "i32", |val: i32| -> i32 {
-        println!("{val} ({val:08x})");
-        val
     })?;
     linker.func_wrap(
         "dbg",
