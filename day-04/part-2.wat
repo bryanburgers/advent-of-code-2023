@@ -4,17 +4,26 @@
     (import "aoc" "input_len" (func $aoc.input_len (result i32)))
     (import "aoc" "input" (func $aoc.input (param i32) (result i32)))
     (import "dbg" "inspect:i32" (func $dbg.i32 (param i32) (result i32)))
+    (import "dbg" "inspect:card_id matches" (func $dbg.cardid_matches (param i32 i32) (result i32 i32)))
+    (import "dbg" "inspect:incrementing   " (func $dbg.incrementing (param i32 i32) (result i32 i32)))
 
     (memory $memory 1)
+
+    (global $extrabook_start (mut i32) (i32.const 0))
 
     (func $main
         (result i32)
         (local $input_len i32)
         (local $parsed i32)
         (local $sum i32)
+        (local $cards i32)
+        (local $loop_matches i32)
         
         call $aoc.input_len
-        local.set $input_len
+        local.tee $input_len
+        i32.const 1000
+        i32.add
+        global.set $extrabook_start
 
         i32.const 0
         call $aoc.input
@@ -22,17 +31,25 @@
         
         (local.set $parsed (i32.const 0))
         (local.set $sum (i32.const 0))
+        (local.set $cards (i32.const 0))
 
         (loop $loop
+            local.get $cards
+            i32.const 1
+            i32.add
+            local.set $cards
+
             local.get $parsed
             call $parse_line
             local.get $parsed
             i32.add
             local.set $parsed
 
-            local.get $sum
-            i32.add
-            local.set $sum
+            local.set $loop_matches
+
+            local.get $cards
+            local.get $loop_matches
+            call $extrabook_increment
 
             local.get $parsed
             local.get $input_len
@@ -40,12 +57,13 @@
             br_if $loop
         )
 
-        local.get $sum
+        local.get $cards
+        call $extrabook_total
     )
 
     (func $parse_line
         (param $offset i32)
-        (result i32 (; number of points ;) )
+        (result i32 (; number of matches ;) )
         (result i32 (; bytes parsed ;) )
 
         (local $cur_offset i32)
@@ -158,6 +176,119 @@
         i32.sub
     )
     
+    (func $extrabook_increment
+        (param $card_id i32)
+        (param $matches i32)
+
+        (local $how_much_to_increment i32)
+        (local $counter i32)
+        (local $loop_card_id i32)
+        (local $loop_card_offset i32)
+
+        ;; local.get $card_id
+        ;; local.get $matches
+        ;; call $dbg.cardid_matches
+        ;; drop
+        ;; drop
+
+        ;; get current number of extra cards for this card ID
+        local.get $card_id
+        call $extrabook_card_offset
+        i32.load
+        ;; and then get the total number of cards for this ID (including the default one)
+        i32.const 1
+        i32.add
+        local.set $how_much_to_increment
+
+        (local.set $counter (i32.const 1))
+
+        (block $block
+            (loop $loop
+                ;; if counter > matches then break
+                local.get $counter
+                local.get $matches
+                i32.gt_u
+                br_if $block
+
+                local.get $counter
+                local.get $card_id
+                i32.add
+                local.set $loop_card_id
+
+                local.get $loop_card_id
+                call $extrabook_card_offset
+                local.set $loop_card_offset
+
+                ;; local.get $loop_card_id
+                ;; local.get $how_much_to_increment
+                ;; call $dbg.incrementing
+                ;; drop
+                ;; drop
+
+                ;; increment the number of extra cards
+                local.get $loop_card_offset
+                local.get $loop_card_offset
+                i32.load
+                local.get $how_much_to_increment
+                i32.add
+                i32.store
+
+                ;; increemnt counter
+                local.get $counter
+                i32.const 1
+                i32.add
+                local.set $counter
+
+                br $loop
+            )
+        )
+    )
+
+    (func $extrabook_card_offset
+        (param $card_id i32)
+        (result i32 (; memory offset ;) )
+
+        global.get $extrabook_start
+        local.get $card_id
+        i32.const 4 ;; 4 bytes per card, sure.
+        i32.mul
+        i32.add
+    )
+
+    (func $extrabook_total
+        (param $cards i32)
+        (result i32 (; total cards ;))
+
+        (local $sum i32)
+        (local $counter i32)
+
+        (loop $loop
+            local.get $counter
+            i32.const 1
+            i32.add
+            local.set $counter
+
+            ;; get the number of extra cards
+            local.get $counter
+            ;; call $dbg.i32
+            call $extrabook_card_offset
+            i32.load
+            ;; and then get the total number of cards for this ID (including the default one)
+            i32.const 1
+            i32.add
+            ;; call $dbg.i32
+            local.get $sum
+            i32.add
+            local.set $sum
+
+            local.get $counter
+            local.get $cards
+            i32.lt_u
+            br_if $loop
+        )
+
+        local.get $sum
+    )
 
     (func $cardset_make (result v128)
         v128.const i64x2 0 0
@@ -208,8 +339,6 @@
         (local $anded v128)
         (local $popcnt i32)
 
-        i32.const 1
-
         local.get $a
         local.get $b
         v128.and
@@ -234,11 +363,6 @@
         i32.add
         i32.add
         i32.add
-
-        i32.shl
-
-        i32.const 1
-        i32.shr_u
     )
 
     ;; Attempt to parse a single digit from the input
