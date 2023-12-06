@@ -10,14 +10,19 @@ pub struct Args {
     code: PathBuf,
     /// The location of the problem input
     #[clap(value_name = "FILE")]
-    input: PathBuf,
+    input: Option<PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     // Our hand-written file.
     let code = std::fs::read(args.code)?;
-    let input = std::fs::read(args.input)?;
+    // The input.
+    let input = if let Some(ref input) = args.input {
+        std::fs::read(input)?
+    } else {
+        Vec::new()
+    };
 
     // A whole bunch of wasmtime initialization.
     let config = Config::new();
