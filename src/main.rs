@@ -81,6 +81,48 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 wasmtime::ExternType::Table(_) => continue,
                 wasmtime::ExternType::Memory(_) => continue,
             }
+        } else if let Some(name) = import.name().strip_prefix("mem:") {
+            let Some((bytes, name)) = name.split_once(':') else {
+                println!("Name prefixed with mem: but doesn't have a number of bytes");
+                continue;
+            };
+            let Ok(bytes) = bytes.parse::<usize>() else {
+                println!("Name prefixed with mem: but doesn't have a number of bytes");
+                continue;
+            };
+            match import.ty() {
+                wasmtime::ExternType::Func(_) => {
+                    let name = name.to_string();
+                    linker.func_wrap(
+                        import.module(),
+                        import.name(),
+                        move |mut caller: Caller<'_, Vec<u8>>, ptr: i32| -> i32 {
+                            let Some(Extern::Memory(memory)) = caller.get_export("memory") else {
+                                return ptr;
+                            };
+
+                            let memory = memory.data(&caller);
+                            let bytes = &memory[ptr as usize..][..bytes as usize];
+                            let mut is_first = true;
+                            print!("{name} at {ptr:08x}: ");
+                            for byte in bytes {
+                                if is_first {
+                                    is_first = false;
+                                    print!("{byte:02x}");
+                                } else {
+                                    print!(" {byte:02x}");
+                                }
+                            }
+                            println!();
+
+                            ptr
+                        },
+                    )?;
+                }
+                wasmtime::ExternType::Global(_) => continue,
+                wasmtime::ExternType::Table(_) => continue,
+                wasmtime::ExternType::Memory(_) => continue,
+            }
         }
     }
 
