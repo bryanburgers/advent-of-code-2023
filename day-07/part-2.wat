@@ -361,7 +361,7 @@
             i32.eq
             br_if $ret
 
-            (local.set $value (i32.const 11))
+            (local.set $value (i32.const 1))
             local.get $byte
             i32.const 0x4a ;; "J"
             i32.eq
@@ -430,7 +430,12 @@
     )
 
     (func $card_matches (param $c1 i32) (param $c2 i32) (result i32)
+        ;; Either the cards match, or at least one of the cards is a Joker
         (i32.eq (local.get $c1) (local.get $c2))
+        (i32.eq (local.get $c1) (i32.const 1))
+        (i32.eq (local.get $c2) (i32.const 1))
+        i32.or
+        i32.or
     )
 
     (func $two_match (param i32 i32) (result i32)
