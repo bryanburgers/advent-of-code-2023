@@ -176,6 +176,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!();
         },
     )?;
+    linker.func_wrap("dbg", "day10vis", |mut caller: Caller<'_, Vec<u8>>| {
+        let data_len = caller.data().len();
+        let Some(Extern::Memory(memory)) = caller.get_export("memory") else {
+            return;
+        };
+
+        let data = memory.data(&caller);
+        let memory = &data[..data_len];
+
+        let mut output = String::new();
+        let mut row_number = 0;
+        use std::fmt::Write;
+        write!(&mut output, "{:>4} ", row_number).unwrap();
+        for byte in memory {
+            match byte {
+                0xc6 => output.push_str("┌"),
+                0xcc => output.push_str("└"),
+                0xca => output.push_str("┘"),
+                0xb7 => output.push_str("┐"),
+                0xfc => output.push_str("│"),
+                0xad => output.push_str("─"),
+
+                0x01 => output.push_str("\x1b[32m▓\x1b[0m"),
+
+                0x0a => {
+                    row_number += 1;
+                    output.push_str("\n");
+                    write!(&mut output, "{:>4} ", row_number).unwrap();
+                }
+
+                _ => output.push_str("."),
+            }
+        }
+        println!("{output}");
+    })?;
 
     let mut store = Store::new(&engine, input);
     let instance = linker.instantiate(&mut store, &module)?;
