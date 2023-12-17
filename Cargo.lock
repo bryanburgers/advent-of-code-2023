@@ -12,15 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "advent-of-code-2023"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "wasmtime",
-]
-
-[[package]]
 name = "ahash"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -817,6 +808,15 @@ dependencies = [
  "rustc-hash",
  "slice-group-by",
  "smallvec",
+]
+
+[[package]]
+name = "run-wat"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "wasmtime",
 ]
 
 [[package]]
