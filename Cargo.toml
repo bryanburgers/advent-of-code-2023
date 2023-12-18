@@ -1,2 +1,3 @@
 [workspace]
-members = ['run-wat']
+members = ['run-wat', 'day-16']
+resolver = "2"
