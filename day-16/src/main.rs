@@ -11,11 +11,49 @@ fn main() {
     let board = Board::new(data);
 
     let start_entry = Entry::new(Point { x: 0, y: 0 }, Direction::WestToEast);
-    let mut entry_stack: Vec<Entry> = vec![Entry::new(Point { x: 0, y: 0 }, Direction::WestToEast)];
+    println!("{}", solve(start_entry, &board));
+
+    let mut max = 0;
+    for x in 0..board.width {
+        let start_entry = Entry::new(Point { x, y: 0 }, Direction::NorthToSouth);
+        let value = solve(start_entry, &board);
+        max = std::cmp::max(value, max);
+
+        let start_entry = Entry::new(
+            Point {
+                x,
+                y: board.height - 1,
+            },
+            Direction::SouthToNorth,
+        );
+        let value = solve(start_entry, &board);
+        max = std::cmp::max(value, max);
+    }
+    for y in 0..board.height {
+        let start_entry = Entry::new(Point { x: 0, y }, Direction::WestToEast);
+        let value = solve(start_entry, &board);
+        max = std::cmp::max(value, max);
+
+        let start_entry = Entry::new(
+            Point {
+                x: board.width - 1,
+                y,
+            },
+            Direction::EastToWest,
+        );
+        let value = solve(start_entry, &board);
+        max = std::cmp::max(value, max);
+    }
+
+    println!("{max}");
+}
+
+fn solve(initial_entry: Entry, board: &Board) -> usize {
+    let mut entry_stack: Vec<Entry> = vec![initial_entry];
     let mut entries_seen: HashSet<Entry> = Default::default();
-    entries_seen.insert(start_entry);
+    entries_seen.insert(initial_entry);
     let mut points_seen: HashSet<Point> = Default::default();
-    points_seen.insert(start_entry.point);
+    points_seen.insert(initial_entry.point);
 
     while let Some(entry) = entry_stack.pop() {
         let mut exit_controller = |new_direction| {
@@ -33,7 +71,7 @@ fn main() {
         board.exits(entry.point, entry.direction, &mut exit_controller);
     }
 
-    println!("{}", points_seen.len());
+    points_seen.len()
 }
 
 #[derive(Debug)]
